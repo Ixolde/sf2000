@@ -16,118 +16,125 @@
         <p>Select the <code>bisrv.asd</code> file whose boot logo you want to modify. You should probably make a backup of the file first, just in case! You can find the <code>bisrv.asd</code> file in the <code>bios</code> folder on your microSD card.</p>
         <div id="bisrvMessages"></div>
         <div class="controlContainer">
-          <label class="control">Open <code>bisrv.asd</code>: <input id="bisrvSelector" type="file" accept=".asd" onchange="bisrvLoad(event.target.files[0])"></label>
+          <label class = "control">Open 
+            <code>bisrv.asd</code>: 
+            <input id="birsvSelector" type="file" accept=".asd" onchange="bisrvLoad(event.target.files[0])">
+          </label>
         </div>
-      </section>
+      </section>    
     </div>
+
     <script src="tools.js"></script>
     <script type="text/javascript">
 
       // Global variables...
-      let bisrvData;              // Used to store the binary data from the bisrv.asd file
       let logoOffset;             // Will contain the offset of the boot logo within the bisrv.asd file
       let newLogoData;            // Used to store raw ImageData of the new boot logo
       let ditherEnabled = false;  // Holds whether the user wants to enable dithering for RGB565 mode or not
       let ditherStrength = 0.2;   // Holds the selected dither strength value - 0.2 seems to be a good general balance
 
-      // This function is triggered when the person selects a file in Step 1...
-      function bisrvLoad(file) {
+//  =======================================================================================================================
+//  =======================================================================================================================
+      function bisrvLoad(file) {  //  Called when a file is selected
+        const msg = document.getElementById('bisrvMessages');
+        msg.innerHTML = '';
 
-        // Read in the contents of the selected file as array buffer...
-        const frBisrv = new FileReader();
-        frBisrv.readAsArrayBuffer(file);
-        frBisrv.onload = function(event) {
+        const validFile = 'bisrv.asd';
 
-          // Clear out any HTML that might already exist after Step 1...
-          while(document.getElementById("bisrvSection").nextSibling) {
-            document.getElementById("bisrvSection").nextSibling.remove();
-          }
+        if (!file || file.name !== validFile) {
+          msg.innerHTML = `<p style="color:red">Please select the correct file named <code>bisrv.asd</code>.</p>`;
+          removeVersionDropdown();
 
-          // Clear any old messages...
-          document.getElementById("bisrvMessages").innerHTML = "";
-
-          // Read the provided file's data into an array...
-          bisrvData = new Uint8Array(event.target.result);
-
-          // We'll do a hash-check against it...
-          const hashResult = getFirmwareHash(bisrvData);
-
-          // The result could be either a Promise if it had a bisrv.asd-like
-          // structure and we got a hash, or false otherwise... let's check!
-          if (hashResult instanceof Promise) {
-
-            // We got a Promise! Wait for it to finish so we get our bisrv.asd
-            // hash...
-            hashResult.then(function(dataHash) {
-
-              // Check the hash against all the known good ones...
-              switch (knownHash(dataHash)) {
-
-                // Mid-March BIOS...
-                case "03.15":
-                  logoOffset = 0x9B9030;
-                  setMessage("info", "bisrvMessages", "INFO: Mid-March <code>bisrv.asd</code> detected.");
-                  break;
-
-                // April 20th BIOS...
-                case "04.20":
-                  logoOffset = 0x9B91D8;
-                  setMessage("info", "bisrvMessages", "INFO: April 20th <code>bisrv.asd</code> detected.");
-                  break;
-
-                // May 15th BIOS...
-                case "05.15":
-                  logoOffset = 0x9BB0B8;
-                  setMessage("info", "bisrvMessages", "INFO: May 15th <code>bisrv.asd</code> detected.");
-                  break;
-
-                // May 22nd BIOS...
-                case "05.22":
-                  logoOffset = 0x9BB098;
-                  setMessage("info", "bisrvMessages", "INFO: Version 1.5 <code>bisrv.asd</code> detected.");
-                  break;
-                
-                // August 3rd BIOS...
-                case "08.03":
-                  logoOffset = 0x9B3530;
-                  setMessage("info", "bisrvMessages", "INFO: Version 1.6 <code>bisrv.asd</code> detected.");
-                  break;
-
-                // October 7th BIOS...
-                case "10.07":
-                  logoOffset = 0x9B1FE8;
-                  setMessage("warning", "bisrvMessages", "WARNING: Version 1.7 <code>bisrv.asd</code> detected; this version has known issues with SNES save states and is not recommended for use.");
-                  break;
-                
-                // October 13th BIOS...
-                case "10.13":
-                  logoOffset = 0x9B3618;
-                  setMessage("info", "bisrvMessages", "INFO: Version 1.71 <code>bisrv.asd</code> detected.");
-                  break;
-
-                default:
-                  // Huh... wasn't false so had bisrv.asd structure, but didn't
-                  // return a known hash... a new BIOS version? Unknown anyway!
-                  console.log(dataHash);
-                  setMessage("error", "bisrvMessages", "ERROR: While the file you've selected does appear to be generally structured like the SF2000's <code>bisrv.asd</code> BIOS file, the specifics of your file don't match any known SF2000 BIOS version. As such, this tool cannot safely modify the selected file.");
-                  return;
-              }
-
-              // If we're here we've got a good file, so onwards to Step 2
-              // (image selection)...
-              stepTwo();
-            });
-          }
-          else {
-
-            // We got false, so whatever it was, it wasn't a bisrv.asd...
-            setMessage("error", "bisrvMessages", "ERROR: The file you've selected doesn't appear to have the same data structure as expected for a <code>bisrv.asd</code> file.");
-            return;
-          }
-        };
+        } else {
+          msg.innerHTML = `<p style="font-size: 24px; text-align: center; font-weight: bold; color: white"> File <code>${file.name}</code> loaded successfully.</p>`;
+          showVersionDropdown();
+        }
       }
+        
+      function showVersionDropdown() {  //  Show version selector dropdown
+          if (document.getElementById('versionDropdownSection'))
+          return;
 
-      // This function triggers when the user has selected a known `bisrv.asd`
+          const section = document.createElement('section');
+          section.id = 'versionDropdownSection';
+
+          const label = document.createElement('h2');
+          label.textContent = 'Select Your BIOS Version:';
+          label.style.color = 'white';
+          label.style.fontSize = '24px';
+          label.style.textAlign = 'center';
+          label.style.fontWeight = 'bold';
+
+          const controlContainer = document.createElement('div');
+          controlContainer.className = 'controlContainer';
+          controlContainer.style.display = 'flex';
+          controlContainer.style.justifyContent = 'center';
+          controlContainer.style.marginTop = '10px';
+
+          const container = document.createElement('section');
+
+          const selectLabel = document.createElement('label');
+          selectLabel.className = 'control';
+          const select = document.createElement('select');
+          select.id = 'biosVersion';
+
+          const defaultOption = document.createElement('option');
+          defaultOption.value = '';
+          defaultOption.disabled = true;
+          defaultOption.selected = true;
+          defaultOption.textContent = 'select version';
+          select.appendChild(defaultOption);
+          
+          const versions = ['03.15', '04.20', '05.15', '05.22', '08.03', '10.07', '10.13'];
+          versions.forEach(version => {
+            const option = document.createElement('option');
+            option.value = version;
+            option.textContent = version;
+            select.appendChild(option);
+          });
+
+          selectLabel.appendChild(select);
+          controlContainer.appendChild(selectLabel);
+
+          const proceedButton = document.createElement('button');
+          proceedButton.textContent ='Proceed with Selected Version';
+          proceedButton.style.display = 'block';
+          proceedButton.style.margin = '20px auto';
+          proceedButton.style.padding = '10px 20px';
+          proceedButton.style.fontSize = '16px';
+          proceedButton.style.cursor = 'pointer';
+
+          proceedButton.onclick = () => {
+            const selectedVersion = select.value;
+            if (!selectedVersion) {
+              alert('Please select a BIOS version before continuing.');
+              return;
+            }
+            console.log('Selected BIOS version:', selectedVersion);
+            stepTwo();
+          };
+
+          section.appendChild(label);
+          section.appendChild(controlContainer);
+          section.appendChild(proceedButton);
+
+          const steps = document.getElementById('steps');
+          steps.appendChild(section);
+        }
+
+
+        function removeVersionDropdown() {  //  If file is invalid
+          const existing = document.getElementById('versionDropdownSection');
+          if (existing) {
+            existing.remove();
+          }
+
+        }
+
+//  =======================================================================================================================
+//  =======================================================================================================================
+
+// This function triggers when the user has selected a known `bisrv.asd`
       // variant...
       function stepTwo() {
 
