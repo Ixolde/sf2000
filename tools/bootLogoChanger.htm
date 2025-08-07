@@ -35,7 +35,9 @@
 
 //  =======================================================================================================================
 //  =======================================================================================================================
-      function bisrvLoad(file) {
+      let fileIsValid = false;
+
+        function bisrvLoad(file) {
         const msg = document.getElementById('bisrvMessages');
         msg.innerHTML = '';
 
@@ -43,15 +45,16 @@
 
         if (!file || file.name !== validFile) {
           msg.innerHTML = `<p style="color:red">Please select the correct file named <code>bisrv.asd</code>.</p>`;
-          removeVersionDropdown();
-
+          fileIsValid = false;
         } else {
           msg.innerHTML = `<p style="font-size: 24px; text-align: center; font-weight: bold; color: white"> File <code>${file.name}</code> loaded successfully.</p>`;
-          showVersionDropdown();
+          fileIsValid = true;
         }
+
+        updateProceedButtonVisibility();
       }
         
-      function showVersionDropdown() {  //  Show version selector dropdown
+      function showVersionDropdown() {              //  Show version selector dropdown
           if (document.getElementById('versionDropdownSection'))
           return;
 
@@ -59,7 +62,7 @@
           section.id = 'versionDropdownSection';
 
           const label = document.createElement('h2');
-          label.textContent = 'Select Your BIOS Version:';
+          label.textContent = 'Select your BIOS version:';
           label.style.color = 'white';
           label.style.fontSize = '24px';
           label.style.textAlign = 'center';
@@ -71,12 +74,14 @@
           controlContainer.style.justifyContent = 'center';
           controlContainer.style.marginTop = '10px';
 
-          const container = document.createElement('section');
-
           const selectLabel = document.createElement('label');
           selectLabel.className = 'control';
+          selectLabel.setAttribute('for', 'biosVersion');
+
           const select = document.createElement('select');
           select.id = 'biosVersion';
+
+          selectLabel.appendChild(select);
 
           const defaultOption = document.createElement('option');
           defaultOption.value = '';
@@ -93,16 +98,23 @@
             select.appendChild(option);
           });
 
-          selectLabel.appendChild(select);
+          select.addEventListener('change', updateProceedButtonVisibility);
+
           controlContainer.appendChild(selectLabel);
 
           const proceedButton = document.createElement('button');
+          proceedButton.id = 'proceedButton';
           proceedButton.textContent ='Proceed with Selected Version';
-          proceedButton.style.display = 'block';
+          proceedButton.style.display = 'none';    //  Hidden by default.
           proceedButton.style.margin = '20px auto';
           proceedButton.style.padding = '10px 20px';
-          proceedButton.style.fontSize = '16px';
+          proceedButton.style.fontSize = '20px';
           proceedButton.style.cursor = 'pointer';
+          proceedButton.style.color = '#498280';
+          proceedButton.style.backgroundColor = 'E0E0E0';
+          proceedButton.style.border = '10px solid #F0F0F0';
+          proceedButton.style.borderRadius = '5px';
+          proceedButton.style.fontWeight = 'bold';
 
           proceedButton.onclick = () => {
             const selectedVersion = select.value;
@@ -122,11 +134,24 @@
           steps.appendChild(section);
         }
 
+        document.addEventListener('DOMContentLoaded', () => {
+          showVersionDropdown();
 
-        function removeVersionDropdown() {  //  If file is invalid
-          const existing = document.getElementById('versionDropdownSection');
-          if (existing) {
-            existing.remove();
+        })
+
+        function updateProceedButtonVisibility() {
+          const select = document.getElementById('biosVersion');
+          const proceedButton = document.getElementById('proceedButton');
+
+          if (!select || !proceedButton)
+          return;
+
+          const selectedVersion = select.value;
+          if(fileIsValid && selectedVersion) {
+            proceedButton.style.display = 'block';
+
+          } else {
+            proceedButton.style.display = 'none';
           }
 
         }
